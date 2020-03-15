@@ -4,6 +4,7 @@ import gensim.downloader as api
 from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
 from scipy import spatial
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
 
 def getDocVector(document):
     vector = []
@@ -22,7 +23,7 @@ def findCosineThreshold(x_train, y_train):
     numDuplicates = 0
     for i in range(len(x_train)):
         try:
-            if y_train[i] == 1:
+            if y_train[i] == 0:
                 continue
             #calculate word embeddings of all words in each question w/ word2vec
             avgEmbedding1 = getDocVector(x_train[i][0])
@@ -41,7 +42,34 @@ def findCosineThreshold(x_train, y_train):
 
     return cosineSumTotal / numDuplicates
 
-model = api.load("glove-twitter-25")
+def predict(x_test):
+    #1 means duplicate
+    test_pred = []
+    for i in range(len(x_test)):
+        try:
+            #calculate word embeddings of all words in each question w/ word2vec
+            avgEmbedding1 = getDocVector(x_test[i][0])
+            
+            avgEmbedding2 = getDocVector(x_test[i][1])
+            
+            #now calculate cosine similarity between vectors
+            cosineSimilarity = 1 - spatial.distance.cosine(avgEmbedding1, avgEmbedding2)
+            if cosineSimilarity >= .7296505395554921:
+                test_pred.append(1)
+            else:
+                test_pred.append(0)
+        except:
+            test_pred.append(0)
+            pass
+            # print(x_test[i][0])
+            # print(x_test[i][1])
+            # print()
+
+    return test_pred
+
+model = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary = True, limit=500000)
+# model = gensim.models.KeyedVectors.load_word2vec_format('path-to-vectors.txt', binary=False)
+
 
 data = pd.read_csv('quora_duplicate_questions.tsv', sep = '\t')
 #remove unimportant stuff and combine the questions into a list so you can split into test and training
@@ -55,8 +83,16 @@ x = data['combined'].to_list()
 
 x_train, x_test, y_train, y_test = train_test_split(x, y)
 
-cosineTheshold = findCosineThreshold(x_train, y_train)
-print(cosineTheshold)
+# cosineTheshold = findCosineThreshold(x_train, y_train)
+# print(cosineTheshold)
+
+test_pred = predict(x_test) 
+
+print('Accuracy score: ', accuracy_score(y_test, test_pred))
+print('Precision score: ', precision_score(y_test, test_pred))
+print('Recall score: ', recall_score(y_test, test_pred))
+print('F-1 score: ', f1_score(y_test, test_pred))
+print(classification_report(y_test, test_pred))
 
 
 
