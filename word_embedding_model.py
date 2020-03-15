@@ -3,6 +3,7 @@ import gensim
 import gensim.downloader as api
 from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
+from scipy import spatial
 
 def getDocVector(document):
     vector = []
@@ -20,17 +21,23 @@ def findCosineThreshold(x_train, y_train):
     cosineSumTotal = 0
     numDuplicates = 0
     for i in range(len(x_train)):
-        if y_train[i] == '1':
-            continue
-        numDuplicates += 1
-        #calculate word embeddings of all words in each question w/ word2vec
-        avgEmbedding1 = getDocVector(x_train[i][0])
-        
-        avgEmbedding2 = getDocVector(x_train[i][1])
-
-        #now calculate cosine similarity between vectors
-        cosineSimilarity = 99 ##FIXME make actual value
-        cosineSumTotal += cosineSimilarity
+        try:
+            if y_train[i] == 1:
+                continue
+            #calculate word embeddings of all words in each question w/ word2vec
+            avgEmbedding1 = getDocVector(x_train[i][0])
+            
+            avgEmbedding2 = getDocVector(x_train[i][1])
+            
+            numDuplicates += 1
+            #now calculate cosine similarity between vectors
+            cosineSimilarity = 1 - spatial.distance.cosine(avgEmbedding1, avgEmbedding2)
+            cosineSumTotal += cosineSimilarity
+        except:
+            pass
+            # print(x_train[i][0])
+            # print(x_train[i][1])
+            # print()
 
     return cosineSumTotal / numDuplicates
 
@@ -49,6 +56,7 @@ x = data['combined'].to_list()
 x_train, x_test, y_train, y_test = train_test_split(x, y)
 
 cosineTheshold = findCosineThreshold(x_train, y_train)
+print(cosineTheshold)
 
 
 
