@@ -5,6 +5,11 @@ from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
 from scipy import spatial
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+from sklearn.metrics.pairwise import cosine_similarity
+from numpy import dot
+from numpy.linalg import norm
+
+model = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary = True, limit=500000)
 
 def getDocVector(document):
     vector = []
@@ -13,9 +18,11 @@ def getDocVector(document):
 
     for word in wordSet:
         if word in model.vocab:
+            print(word)
             embeddings = model[word]
             avgEmbedding = sum(embeddings) / len(embeddings)
             vector.append(avgEmbedding)
+    print(vector)
     return sum(vector) / len(vector)
 
 def findCosineThreshold(x_train, y_train):
@@ -26,7 +33,7 @@ def findCosineThreshold(x_train, y_train):
             if y_train[i] == 0:
                 continue
             #calculate word embeddings of all words in each question w/ word2vec
-            avgEmbedding1 = getDocVector(x_train[i][0])
+            avgEmbedding1 = getDocVector([x_train[i][0]])
             
             avgEmbedding2 = getDocVector(x_train[i][1])
             
@@ -51,25 +58,22 @@ def predict(x_test):
             avgEmbedding1 = getDocVector(x_test[i][0])
             
             avgEmbedding2 = getDocVector(x_test[i][1])
+            print(avgEmbedding1)
+            print(avgEmbedding2)
             
             #now calculate cosine similarity between vectors
-            cosineSimilarity = 1 - spatial.distance.cosine(avgEmbedding1, avgEmbedding2)
+            cosineSimilarity = dot(avgEmbedding1, avgEmbedding2)/(norm(avgEmbedding1)*norm(avgEmbedding2))
             if cosineSimilarity >= .7296505395554921:
                 test_pred.append(1)
             else:
                 test_pred.append(0)
         except:
             test_pred.append(0)
-            pass
             # print(x_test[i][0])
             # print(x_test[i][1])
             # print()
 
-    return test_pred
-
-model = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary = True, limit=500000)
-# model = gensim.models.KeyedVectors.load_word2vec_format('path-to-vectors.txt', binary=False)
-
+    return cosineSimilarity
 
 data = pd.read_csv('quora_duplicate_questions.tsv', sep = '\t')
 #remove unimportant stuff and combine the questions into a list so you can split into test and training
@@ -80,19 +84,28 @@ data = data.drop(['question1', 'question2'], axis = 1)
 #print(data)
 y = data['is_duplicate'].tolist()
 x = data['combined'].to_list()
-
 x_train, x_test, y_train, y_test = train_test_split(x, y)
 
 # cosineTheshold = findCosineThreshold(x_train, y_train)
 # print(cosineTheshold)
 
-test_pred = predict(x_test) 
+# test_pred = predict(x_test) 
 
-print('Accuracy score: ', accuracy_score(y_test, test_pred))
-print('Precision score: ', precision_score(y_test, test_pred))
-print('Recall score: ', recall_score(y_test, test_pred))
-print('F-1 score: ', f1_score(y_test, test_pred))
-print(classification_report(y_test, test_pred))
+# print('Accuracy score: ', accuracy_score(y_test, test_pred))
+# print('Precision score: ', precision_score(y_test, test_pred))
+# print('Recall score: ', recall_score(y_test, test_pred))
+# print('F-1 score: ', f1_score(y_test, test_pred))
+# print(classification_report(y_test, test_pred))
+
+x_test = [['Do Mexican girls like black guys?'.lower(), 'Do girls like black guys with no beard?'.lower()]]
+print(predict(x_test))
+
+#sex one and physics one got distance of 0, but what does manipulation means got distance of 2????
+#mean got avg embedding of -0.004502741495768229 while means got 0.00034679412841796874
+#it could be thinking of mean as the emotion?
+
+#print(model.similarity('mean', 'means'))
+#print(model.most_similar('means')[:5])
 
 
 
