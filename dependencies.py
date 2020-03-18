@@ -1,14 +1,14 @@
 import spacy
 nlp = spacy.load('en_core_web_sm')
 
-piano_text = 'Do Mexican girls like black guys?'.lower()
+piano_text = 'Which car has good build quality in india?'.lower()
 piano_doc = nlp(piano_text)
 for token in piano_doc:
     print (token.text, token.tag_, token.head.text, token.dep_)
 
 print()
 
-piano_text = 'Do girls like black guys with no beard?'.lower()
+piano_text = 'Is Volkswagen a good reliable car?'.lower()
 piano_doc = nlp(piano_text)
 for token in piano_doc:
     print (token.text, token.tag_, token.head.text, token.dep_)
